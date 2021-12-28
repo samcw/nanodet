@@ -5,7 +5,6 @@ model:
     name: OneStageDetector
     backbone:
       name: GhostNet
-      model_size: 1.0x
       out_stages: [2,3,4]
       activation: LeakyReLU
     fpn:

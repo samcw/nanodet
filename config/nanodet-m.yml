@@ -5,7 +5,7 @@ model:
     name: OneStageDetector
     backbone:
       name: ShuffleNetV2
-      model_size: 1.0x
+      model_size: 2.0x
       out_stages: [2,3,4]
       activation: LeakyReLU
     fpn:
