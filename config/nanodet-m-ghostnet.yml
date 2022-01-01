@@ -5,11 +5,12 @@ model:
     name: OneStageDetector
     backbone:
       name: GhostNet
-      out_stages: [2,3,4]
+#      out_stages: [2,3,4]
+      out_stages: [4,6,9]
       activation: LeakyReLU
     fpn:
       name: PAN
-      in_channels: [116, 232, 464]
+      in_channels: [40, 112, 960]
       out_channels: 96
       start_level: 0
       num_outs: 3
