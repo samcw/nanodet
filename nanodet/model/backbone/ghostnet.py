@@ -77,6 +77,34 @@ class SqueezeExcite(nn.Module):
         x = x * self.gate_fn(x_se)
         return x
 
+# EA layer
+class EcaLayer(nn.Module):
+    """Constructs a ECA module.
+    Args:
+        channel: Number of channels of the input feature map
+        k_size: Adaptive selection of kernel size
+    """
+    def __init__(self, channel, k_size=3):
+        super(EcaLayer, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # x: input features with shape [b, c, h, w]
+        b, c, h, w = x.size()
+
+        # feature descriptor on the global spatial information
+        y = self.avg_pool(x)
+
+        # Two different branches of ECA module
+        y = self.conv(y.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
+
+        # Multi-scale information fusion
+        y = self.sigmoid(y)
+
+        return x * y.expand_as(x)
+
 
 class ConvBnAct(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size, stride=1, activation="ReLU"):
@@ -214,6 +242,67 @@ class GhostBottleneck(nn.Module):
         x += self.shortcut(residual)
         return x
 
+class GhostBottleneckSandGlass(nn.Module):
+    """ Ghost bottleneck w/ optional SE"""
+
+    def __init__(self, in_chs, mid_chs, out_chs, dw_kernel_size=3,
+                 stride=1, activation="ReLU", se_ratio=0.0):
+        super(GhostBottleneckSandGlass, self).__init__()
+        self.stride = stride
+
+        # Depth-wise for more space detail
+        self.dw1 = nn.Sequential(
+            nn.Conv2d(in_chs, in_chs, dw_kernel_size, stride=stride, padding=(dw_kernel_size - 1) // 2, groups=in_chs, bias=False),
+            nn.BatchNorm2d(in_chs),
+            nn.ReLU6()
+        )
+
+        # Point-wise expansion
+        self.ghost1 = GhostModule(in_chs, mid_chs)
+
+        # Eca-Layer
+        self.eca = EcaLayer(out_chs)
+
+        # Point-wise linear projection
+        self.ghost2 = GhostModule(mid_chs, out_chs)
+
+        # Depth-wise for more space detail
+        self.dw2 = nn.Sequential(
+            nn.Conv2d(out_chs, out_chs, dw_kernel_size, stride=stride, padding=(dw_kernel_size - 1) // 2, groups=out_chs, bias=False),
+            nn.BatchNorm2d(out_chs)
+        )
+
+        # shortcut
+        if in_chs == out_chs and self.stride == 1:
+            self.shortcut = nn.Sequential()
+        else:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_chs, in_chs, dw_kernel_size, stride=stride,
+                          padding=(dw_kernel_size - 1) // 2, groups=in_chs, bias=False),
+                nn.BatchNorm2d(in_chs),
+                nn.Conv2d(in_chs, out_chs, 1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(out_chs),
+            )
+
+    def forward(self, x):
+        residual = x
+
+        x = self.dw1(x)
+
+        # 1st ghost bottleneck
+        x = self.ghost1(x)
+
+        # 2nd ghost bottleneck
+        x = self.ghost2(x)
+
+        x = self.dw2(x)
+
+        # eca
+        x = self.eca(x)
+
+        x += self.shortcut(residual)
+        return x
+
 
 class GhostNet(nn.Module):
     def __init__(
@@ -275,7 +364,8 @@ class GhostNet(nn.Module):
 
         # building inverted residual blocks
         stages = []
-        block = GhostBottleneck
+        # block = GhostBottleneck
+        block = GhostBottleneckSandGlass
         for cfg in self.cfgs:
             layers = []
             for k, exp_size, c, se_ratio, s in cfg:
