@@ -233,8 +233,6 @@ class GhostBottleneck(nn.Module):
             x = self.bn_dw(x)
 
         # Squeeze-and-excitation
-        if self.se is not None:
-            x = self.se(x)
 
         # 2nd ghost bottleneck
         x = self.ghost2(x)
@@ -364,8 +362,8 @@ class GhostNet(nn.Module):
 
         # building inverted residual blocks
         stages = []
-        # block = GhostBottleneck
-        block = GhostBottleneckSandGlass
+        block = GhostBottleneck
+        # block = GhostBottleneckSandGlass
         for cfg in self.cfgs:
             layers = []
             for k, exp_size, c, se_ratio, s in cfg:
