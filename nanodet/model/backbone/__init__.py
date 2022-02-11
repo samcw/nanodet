@@ -21,6 +21,7 @@ from .mobilenetv2 import MobileNetV2
 from .repvgg import RepVGG
 from .resnet import ResNet
 from .shufflenetv2 import ShuffleNetV2
+from .shufflenetv2_cnsn import ShuffleNetV2CNSN
 
 
 def build_backbone(cfg):
@@ -40,5 +41,7 @@ def build_backbone(cfg):
         return CustomCspNet(**backbone_cfg)
     elif name == "RepVGG":
         return RepVGG(**backbone_cfg)
+    elif name == 'ShuffleNetV2CNSN':
+        return ShuffleNetV2CNSN(**backbone_cfg)
     else:
         raise NotImplementedError
