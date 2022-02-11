@@ -16,7 +16,7 @@ model:
       num_outs: 3
     head:
       name: NanoDetHead
-      num_classes: 80
+      num_classes: 20
       input_channel: 96
       feat_channels: 96
       stacked_convs: 2
