@@ -111,8 +111,12 @@ class ShuffleV2Block(nn.Module):
                 print('using SelfNorm')
                 if pos == 'pre':
                     selfnorm = SelfNorm(inplanes)
-                else:
-                    selfnorm = SelfNorm(planes * self.expansion)
+                elif pos == 'post':
+                    selfnorm = SelfNorm(planes)
+                elif pos == 'residual':
+                    selfnorm = SelfNorm(branch_features)
+                elif pos == 'identity':
+                    selfnorm = SelfNorm(inplanes // 2)
             else:
                 selfnorm = None
 
