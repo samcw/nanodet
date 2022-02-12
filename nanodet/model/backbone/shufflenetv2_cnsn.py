@@ -89,7 +89,7 @@ class ShuffleV2Block(nn.Module):
         )
 
         # pos in ['residual', 'pre', 'post', 'identity']
-        pos = 'residual'
+        pos = 'identity'
         self.pos = pos
         cnsn_type = 'cnsn'
 
